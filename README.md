@@ -1,2 +1,2 @@
 # DStarLite
-An experimental Python implementation of the D* Lite algorithm
+An experimental Python implementation based on the D* Lite Paper
