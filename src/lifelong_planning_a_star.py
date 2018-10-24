@@ -11,6 +11,7 @@
 
 # imports
 from src import dual_priority_queue as dpq
+import math
 
 # global variables
 EDGE_WEIGHT = 1
@@ -20,16 +21,26 @@ EDGE_WEIGHT = 1
 # 2-dimensional, rectilinear map; all squares which are adjacent are connected by default
 
 
-class LPAStar:
+# baseline distance metrics
+def l1_dist(coord1, coord2):
+    p1, p2, q1, q2 = coord1 + coord2
+    return abs(p1 - q1) + abs(p2 - q2)
 
+
+def l2_dist(coord1, coord2):
+    p1, p2, q1, q2 = coord1 + coord2
+    return math.sqrt(((q1 - p1) ** 2) + ((q2 - p2) ** 2))
+
+
+class LPAStar:
     # ########  LPA* core functions  ########
 
-    def __init__(self, resolution, start_coord, goal_coord, heuristic_func, edge_list):
+    def __init__(self, resolution, start_coord, goal_coord, heuristic_func=l1_dist):
         # corresponds to "Initialize"
 
         # init the containers
-        self._h = heuristic_func
-        self._pq = dpq.DualPriorityQueue
+        self._h = heuristic_func  # expects a lambda that can be called
+        self._pq = dpq.DualPriorityQueue()
         self._start = start_coord
         self._goal = goal_coord
 
@@ -47,7 +58,6 @@ class LPAStar:
         self._pq.push(key=start_coord, primary=prim, secondary=sec)
 
     def compute_keys(self, coord):
-        x, y = coord
         heuristic = self._h(coord, self._goal)
         tup = self._get_tuple(coord)
         baseline = min(tup)
@@ -59,7 +69,10 @@ class LPAStar:
             new_rhs = float("inf")
             for each in self._get_neighbors(coord):
                 g, _ = self._get_tuple(each)
-                new_rhs = min(new_rhs, g + EDGE_WEIGHT)
+                if self._inaccessible[each[0]][each[1]]:
+                    new_rhs = min(new_rhs, float("inf"))  # it's a wall - infinite cost
+                else:
+                    new_rhs = min(new_rhs, g + EDGE_WEIGHT)  # it's not a wall - cost is 1
             self._set_tuple(coord, (None, new_rhs))
 
         # remove from PQ
@@ -73,10 +86,33 @@ class LPAStar:
 
     def compute_shortest_path(self):
         # implicitly assumes start to goal
-        # @@@@@ pick up here
-        pass
+        goal_tup = self._get_tuple(self._goal)
+        goal_keys = self.compute_keys(self._goal)
+        peek_keys = self._pq.peek()
+        while (goal_tup[0] != goal_tup[1]) or (self._tuple_lt(peek_keys, goal_keys)):
+            u = self._pq.pop()
+            next_tup = self._get_tuple(u[0])
+            if next_tup[0] > next_tup[1]:
+                self._set_tuple(u, (next_tup[1], None))  # g(s) = rhs(s)
+            else:
+                self._set_tuple(u, (float("inf"), None))  # g(s) = infinity
+                self.update_vertex(u)  # update the vertex itself
+            for s in self._get_neighbors(u):
+                self.update_vertex(s)  # update the successor vertices, in either case
+
+            # prep for next iteration
+            goal_tup = self._get_tuple(self._goal)
 
     # ########  internal helper functions ########
+    def _tuple_lt(self, tup1, tup2):
+        t1_label, t1_primary, t1_secondary = tup1
+        t2_label, t2_primary, t2_secondary = tup2
+        if t1_primary < t2_primary:
+            return True
+        elif t1_primary > t2_primary:
+            return False
+        else:
+            return t1_secondary < t2_secondary
 
     def _in_map(self, coord):
         x, y = coord
@@ -114,3 +150,11 @@ class LPAStar:
             each_x, each_y = each
             if not self._inaccessible[each_x][each_y]:
                 self.update_vertex(each)
+
+    def extract_path(self):
+        # traverses the weights and returns a series of coordinates corresponding to the shortest path
+        best_path = []
+
+        # TODO: Need to implement the rest of this function
+
+        return best_path
