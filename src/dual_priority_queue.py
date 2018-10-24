@@ -57,7 +57,7 @@ class DualPriorityQueue:
         self._min_value = min(self._ledger.keys())
         self._min_count = list(self._ledger.keys()).count(self._min_value)
 
-    def pop(self):
+    def peek(self):
         if self.size() <= 0:
             return None  # nothing to pop
 
@@ -69,8 +69,12 @@ class DualPriorityQueue:
             result.append((each, primary, secondary))
         result.sort(key=lambda x: x[2])  # sort the list by the secondary priority
         result = result[0]
-        self.delete_key(result[0])  # remove and clean up
 
+        return result
+
+    def pop(self):
+        result = self.peek()
+        self.delete_key(result[0])  # remove and clean up
         return result
 
 
