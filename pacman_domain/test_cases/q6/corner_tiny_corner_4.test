@@ -1,0 +1,13 @@
+class: "CornerProblemTest"
+
+layoutName: "tinyCorner"
+layout: """
+%%%%%%%%
+%.    .%
+%      %
+%  .P  %
+%      %
+%      %
+%.    .%
+%%%%%%%%
+"""
