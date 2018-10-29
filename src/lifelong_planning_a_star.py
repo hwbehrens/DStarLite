@@ -43,14 +43,15 @@ class LPAStar:
         self._pq = dpq.DualPriorityQueue()
         self._start = start_coord
         self._goal = goal_coord
+        self._has_path = False
 
         # set up the map/grid
         x_res, y_res = resolution
         self._width = x_res
         self._height = y_res
         self._node_count = x_res * y_res
-        self._vertices = [[[float("inf"), float("inf")] for x in range(x_res)] for x in range(y_res)]
-        self._inaccessible = [[False for x in range(x_res)] for x in range(y_res)]
+        self._vertex_weights = [[[float("inf"), float("inf")] for x in range(x_res)] for x in range(y_res)]
+        self._is_wall = [[False for x in range(x_res)] for x in range(y_res)]
 
         # init the start node
         self._set_tuple(start_coord, (None, 0))
@@ -69,7 +70,7 @@ class LPAStar:
             new_rhs = float("inf")
             for each in self._get_neighbors(coord):
                 g, _ = self._get_tuple(each)
-                if self._inaccessible[each[0]][each[1]]:
+                if self._is_wall[each[0]][each[1]]:
                     new_rhs = min(new_rhs, float("inf"))  # it's a wall - infinite cost
                 else:
                     new_rhs = min(new_rhs, g + EDGE_WEIGHT)  # it's not a wall - cost is 1
@@ -88,12 +89,12 @@ class LPAStar:
         # implicitly assumes start to goal
         goal_tup = self._get_tuple(self._goal)
         goal_keys = self.compute_keys(self._goal)
-        peek_keys = self._pq.peek()
+        peek_keys = self._pq.peek()[1:3]  # slice the peek to get the priority tuple only
         while (goal_tup[0] != goal_tup[1]) or (self._tuple_lt(peek_keys, goal_keys)):
             u = self._pq.pop()
-            next_tup = self._get_tuple(u[0])
-            if next_tup[0] > next_tup[1]:
-                self._set_tuple(u, (next_tup[1], None))  # g(s) = rhs(s)
+            vertex_weight_tuple = self._get_tuple(u[0])
+            if vertex_weight_tuple[0] > vertex_weight_tuple[1]:
+                self._set_tuple(u, (vertex_weight_tuple[1], None))  # g(s) = rhs(s)
             else:
                 self._set_tuple(u, (float("inf"), None))  # g(s) = infinity
                 self.update_vertex(u)  # update the vertex itself
@@ -102,11 +103,19 @@ class LPAStar:
 
             # prep for next iteration
             goal_tup = self._get_tuple(self._goal)
+        self._has_path = True
 
     # ########  internal helper functions ########
     def _tuple_lt(self, tup1, tup2):
-        t1_label, t1_primary, t1_secondary = tup1
-        t2_label, t2_primary, t2_secondary = tup2
+        if len(tup1) == 2 and len(tup2) == 2:
+            t1_primary, t1_secondary = tup1
+            t2_primary, t2_secondary = tup2
+        elif len(tup1) == 3 and len(tup2) == 3:
+            t1_label, t1_primary, t1_secondary = tup1
+            t2_label, t2_primary, t2_secondary = tup2
+        else:
+            raise ValueError("Cannot compare tuples with different (or non-standard) input arity")
+
         if t1_primary < t2_primary:
             return True
         elif t1_primary > t2_primary:
@@ -130,31 +139,41 @@ class LPAStar:
     def _set_tuple(self, coord, tup):
         x, y = coord
         if tup[0] is not None:
-            self._vertices[x][y][0] = tup[0]
+            self._vertex_weights[x][y][0] = tup[0]
         if tup[1] is not None:
-            self._vertices[x][y][0] = tup[1]
+            self._vertex_weights[x][y][0] = tup[1]
 
     def _get_tuple(self, coord):
         x, y = coord
-        return self._vertices[x][y]
+        return self._vertex_weights[x][y]
 
     # ########  external (pacman) helper functions  ########
 
     def convert_to_wall(self, coord):
         x, y = coord
-        self._inaccessible[x][y] = True
+        self._is_wall[x][y] = True
+        self._has_path = False  # path might have changed!
 
         # "update the edge weights", or more accurately, update the adjacent, affected vertices
         for each in self._get_neighbors(coord):
             # if it's already a wall, don't worry about updating it
             each_x, each_y = each
-            if not self._inaccessible[each_x][each_y]:
+            if not self._is_wall[each_x][each_y]:
                 self.update_vertex(each)
 
     def extract_path(self):
+        if not self._has_path:
+            self.compute_shortest_path()  # if no shortest path is yet available, generate one
+
         # traverses the weights and returns a series of coordinates corresponding to the shortest path
         best_path = []
 
-        # TODO: Need to implement the rest of this function
+        curr_pos = self._start
+        while curr_pos != self._goal:
+            curr_neighbors = self._get_neighbors(curr_pos)
+            for i in range(len(curr_neighbors)):
+                # get the weights as well
+                curr_neighbors[i] = (curr_neighbors[i], self._get_tuple(curr_neighbors[i]))
+            print(curr_neighbors)  # ******
 
         return best_path
