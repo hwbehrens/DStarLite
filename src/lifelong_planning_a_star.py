@@ -15,6 +15,7 @@ import math
 
 # global variables
 EDGE_WEIGHT = 1
+Unchanged = None  # alias to improve semantic readability
 
 # assumptions:
 # all edge weights are either 1 (adjacent) or infinity (non-adjacent or walls)
@@ -54,7 +55,7 @@ class LPAStar:
         self._is_wall = [[False for x in range(x_res)] for x in range(y_res)]
 
         # init the start node
-        self._set_tuple(start_coord, (None, 0))
+        self._set_tuple(start_coord, (Unchanged, 0))
         prim, sec = self.compute_keys(start_coord)
         self._pq.push(key=start_coord, primary=prim, secondary=sec)
 
@@ -68,41 +69,50 @@ class LPAStar:
         # update rhs (if not start node)
         if coord != self._start:
             new_rhs = float("inf")
-            for each in self._get_neighbors(coord):
+            neighbors = self._get_neighbors(coord)
+            for each in neighbors:
                 g, _ = self._get_tuple(each)
                 if self._is_wall[each[0]][each[1]]:
                     new_rhs = min(new_rhs, float("inf"))  # it's a wall - infinite cost
                 else:
                     new_rhs = min(new_rhs, g + EDGE_WEIGHT)  # it's not a wall - cost is 1
-            self._set_tuple(coord, (None, new_rhs))
+            self._set_tuple(coord, (Unchanged, new_rhs))
 
         # remove from PQ
         self._pq.delete_key(coord)
 
-        # re-insert if locally inconsistent
+        # re-insert if locally underconsistent (inequality partially satisfied by upstream compute_shortest_path)
         g, rhs = self._get_tuple(coord)
         if g != rhs:
             prim, sec = self.compute_keys(coord)
             self._pq.push(key=coord, primary=prim, secondary=sec)
 
     def compute_shortest_path(self):
+        if self._has_path:
+            return  # don't try to re-compute an already-computed path, the PQ is empty
+
         # implicitly assumes start to goal
         goal_tup = self._get_tuple(self._goal)
         goal_keys = self.compute_keys(self._goal)
         peek_keys = self._pq.peek()[1:3]  # slice the peek to get the priority tuple only
         while (goal_tup[0] != goal_tup[1]) or (self._tuple_lt(peek_keys, goal_keys)):
-            u = self._pq.pop()
-            vertex_weight_tuple = self._get_tuple(u[0])
-            if vertex_weight_tuple[0] > vertex_weight_tuple[1]:
-                self._set_tuple(u, (vertex_weight_tuple[1], None))  # g(s) = rhs(s)
+            u = self._pq.pop()[0]
+            g_u, rhs_u = self._get_tuple(u)  # pull these again; they may be different than when it was pushed
+            if g_u > rhs_u:
+                # locally overconsistent
+                self._set_tuple(u, (rhs_u, Unchanged))  # g(s) = rhs(s)
             else:
-                self._set_tuple(u, (float("inf"), None))  # g(s) = infinity
+                self._set_tuple(u, (float("inf"), Unchanged))  # g(s) = infinity
                 self.update_vertex(u)  # update the vertex itself
             for s in self._get_neighbors(u):
                 self.update_vertex(s)  # update the successor vertices, in either case
 
-            # prep for next iteration
+            # prep variables for next loop invariant test
+            if self._pq.size() == 0:
+                break  # all done! the whole graph is consistent
             goal_tup = self._get_tuple(self._goal)
+            peek_keys = self._pq.peek()[1:3]
+
         self._has_path = True
 
     # ########  internal helper functions ########
@@ -128,8 +138,10 @@ class LPAStar:
         return 0 <= x < self._width and 0 <= y < self._height
 
     def _get_neighbors(self, coord):
-        all_dirs = [(coord[0], coord[1] - 1), (coord[0] + 1, coord[1]), (coord[0], coord[1] + 1),
-                    (coord[0] - 1, coord[1] - 1)]
+        all_dirs = [(coord[0], coord[1] - 1),  # north
+                    (coord[0] + 1, coord[1]),  # east
+                    (coord[0], coord[1] + 1),  # south
+                    (coord[0] - 1, coord[1])]  # west
         valid_dirs = []
         for each in all_dirs:
             if self._in_map(each):
@@ -138,10 +150,10 @@ class LPAStar:
 
     def _set_tuple(self, coord, tup):
         x, y = coord
-        if tup[0] is not None:
+        if tup[0] is not Unchanged:
             self._vertex_weights[x][y][0] = tup[0]
-        if tup[1] is not None:
-            self._vertex_weights[x][y][0] = tup[1]
+        if tup[1] is not Unchanged:
+            self._vertex_weights[x][y][1] = tup[1]
 
     def _get_tuple(self, coord):
         x, y = coord
@@ -170,10 +182,16 @@ class LPAStar:
 
         curr_pos = self._start
         while curr_pos != self._goal:
+            best_path.append(curr_pos)
             curr_neighbors = self._get_neighbors(curr_pos)
             for i in range(len(curr_neighbors)):
                 # get the weights as well
-                curr_neighbors[i] = (curr_neighbors[i], self._get_tuple(curr_neighbors[i]))
-            print(curr_neighbors)  # ******
+                weight = self._get_tuple(curr_neighbors[i])[1]
+                if curr_neighbors[i] in best_path:
+                    weight = float("inf")  # don't re-use nodes in the path
+                curr_neighbors[i] = (curr_neighbors[i], weight)
+            curr_neighbors.sort(key=lambda tup: tup[1])
+            curr_pos = curr_neighbors[0][0]
 
+        best_path.append(curr_pos)  # add the goal to the path
         return best_path
