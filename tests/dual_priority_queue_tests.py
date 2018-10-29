@@ -7,6 +7,7 @@
 # Provides basic testing functionality for the DualPriorityQueue class
 
 import sys
+
 sys.path.append("/Users/hwbehren/JetBrains/PycharmProjects/DStarLite")
 
 from src import dual_priority_queue as dpq
@@ -37,6 +38,14 @@ assert pq.min_state() == (5, 1)
 pq.delete_key("key2")
 assert pq.size() == 1
 assert pq.min_state() == (6, 1)
+
+# testing deep deletion
+pq.push("key5", 10, 0)
+assert pq.min_state() == (6, 1)
+assert pq.size() == 2
+pq.delete_key("key5")
+assert pq.min_state() == (6, 1)
+assert pq.size() == 1
 
 # testing tie-breaking
 pq.push("key3", 6, 2)
