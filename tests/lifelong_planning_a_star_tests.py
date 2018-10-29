@@ -32,6 +32,8 @@ assert lpa.l2_dist((5, 5), (0, 0)) == math.sqrt(50)
 #   ####
 
 map1 = lpa.LPAStar(start_coord=(0, 0), goal_coord=(1, 1), resolution=(2, 2))
+assert (map1.extract_path() == [(0, 0), (0, 1), (1, 1)] or
+        map1.extract_path() == [(0, 0), (1, 0), (1, 1)])
 
-assert (map1.compute_shortest_path() == [(0, 0), (0, 1), (1, 1)] or
-        map1.compute_shortest_path() == [(0, 0), (1, 0), (1, 1)])
+# all done
+print("Testing complete!")
