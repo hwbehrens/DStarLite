@@ -29,33 +29,40 @@ class DualPriorityQueue:
             self.delete_key(key)  # if a key is pushed twice, update it to the new value (?)
 
         self._ledger[key] = (primary, secondary)
+        if primary not in self._priority:
+            self._priority[primary] = []
         self._priority[primary].append(key)
         self._size += 1
-        if primary < self._min_value:
+        if self._min_value is None or primary < self._min_value:
             self._min_value = primary
             self._min_count = 1
         elif primary == self._min_value:
             self._min_count += 1
 
     def delete_key(self, key):
-        if key not in self._ledger:
-            pass  # nothing to delete
+        if key in self._ledger:
+            # clean up the data first
+            old_primary, old_secondary = self._ledger[key]
+            self._size -= 1
+            del self._ledger[key]
+            self._priority[old_primary].remove(key)
 
-        # clean up the data first
-        old_primary, old_secondary = self._ledger[key]
-        self._size -= 1
-        del self._ledger[key]
-        self._priority[old_primary].remove(key)
-
-        # can be expensive [O(n)] to recompute the min, so be smart about it
-        if old_primary == self._min_value:
-            self._min_count -= 1
-            if self._min_count == 0:
-                self._compute_min()  # only compute if we've exhausted the current min-priority tier
+            # can be expensive [O(n)] to recompute the min, so be smart about it
+            if old_primary == self._min_value:
+                self._min_count -= 1
+                if self._min_count == 0:
+                    del self._priority[old_primary]  # remove the dangling empty priority
+                    self._compute_min()  # only compute if we've exhausted the current min-priority tier
 
     def _compute_min(self):
-        self._min_value = min(self._ledger.keys())
-        self._min_count = list(self._ledger.keys()).count(self._min_value)
+        if self.size() == 0:
+            self._min_count = 0
+            self._min_value = None
+            return
+        else:
+            priority_list = list(self._priority.keys())
+            self._min_value = min(priority_list)
+            self._min_count = priority_list.count(self._min_value)
 
     def peek(self):
         if self.size() <= 0:
@@ -74,7 +81,8 @@ class DualPriorityQueue:
 
     def pop(self):
         result = self.peek()
-        self.delete_key(result[0])  # remove and clean up
+        if result is not None:
+            self.delete_key(result[0])  # remove and clean up
         return result
 
 
