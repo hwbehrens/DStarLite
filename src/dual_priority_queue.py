@@ -46,21 +46,23 @@ class DualPriorityQueue:
             self._size -= 1
             del self._ledger[key]
             self._priority[old_primary].remove(key)
+            if len(self._priority[old_primary]) == 0:
+                del self._priority[old_primary]  # remove the dangling empty priority
 
             # can be expensive [O(n)] to recompute the min, so be smart about it
             if old_primary == self._min_value:
                 self._min_count -= 1
                 if self._min_count == 0:
-                    del self._priority[old_primary]  # remove the dangling empty priority
                     self._compute_min()  # only compute if we've exhausted the current min-priority tier
 
     def _compute_min(self):
         if self.size() == 0:
             self._min_count = 0
             self._min_value = None
-            return
         else:
             priority_list = list(self._priority.keys())
+            if len(priority_list) == 0:
+                print(priority_list)
             self._min_value = min(priority_list)
             self._min_count = priority_list.count(self._min_value)
 
