@@ -45,14 +45,15 @@ class LPAStar:
         self._start = start_coord
         self._goal = goal_coord
         self._has_path = False
+        self._best_path = None
 
         # set up the map/grid
         x_res, y_res = resolution
         self._width = x_res
         self._height = y_res
         self._node_count = x_res * y_res
-        self._vertex_weights = [[[float("inf"), float("inf")] for x in range(x_res)] for x in range(y_res)]
-        self._is_wall = [[False for x in range(x_res)] for x in range(y_res)]
+        self._vertex_weights = [[[float("inf"), float("inf")] for y in range(y_res)] for x in range(x_res)]
+        self._is_wall = [[False for y in range(y_res)] for x in range(x_res)]
 
         # init the start node
         self._set_tuple(start_coord, (Unchanged, 0))
@@ -68,14 +69,13 @@ class LPAStar:
     def update_vertex(self, coord):
         # update rhs (if not start node)
         if coord != self._start:
-            new_rhs = float("inf")
-            neighbors = self._get_neighbors(coord)
-            for each in neighbors:
-                g, _ = self._get_tuple(each)
-                if self._is_wall[each[0]][each[1]]:
-                    new_rhs = min(new_rhs, float("inf"))  # it's a wall - infinite cost
-                else:
-                    new_rhs = min(new_rhs, g + EDGE_WEIGHT)  # it's not a wall - cost is 1
+            new_rhs = float("inf")  # if this node is a wall, the new rhs(s) is infinity
+            if not self._is_wall[coord[0]][coord[1]]:
+                neighbors = self._get_neighbors(coord)
+                for each in neighbors:
+                    # otherwise, it's [edge cost] more than the lowest neighboring g(s)
+                    g, _ = self._get_tuple(each)
+                    new_rhs = min(new_rhs, g + EDGE_WEIGHT)
             self._set_tuple(coord, (Unchanged, new_rhs))
 
         # remove from PQ
@@ -127,11 +127,11 @@ class LPAStar:
             raise ValueError("Cannot compare tuples with different (or non-standard) input arity")
 
         if t1_primary < t2_primary:
-            return True
+            return True  # first primary wins
         elif t1_primary > t2_primary:
-            return False
+            return False  # second primary wins
         else:
-            return t1_secondary < t2_secondary
+            return t1_secondary < t2_secondary  # secondaries break tied primaries
 
     def _in_map(self, coord):
         x, y = coord
@@ -161,37 +161,39 @@ class LPAStar:
 
     # ########  external (pacman) helper functions  ########
 
-    def convert_to_wall(self, coord):
+    def make_wall_at(self, coord):
         x, y = coord
-        self._is_wall[x][y] = True
-        self._has_path = False  # path might have changed!
+
+        # path might have changed!
+        self._has_path = False
+        self._best_path = None
 
         # "update the edge weights", or more accurately, update the adjacent, affected vertices
-        for each in self._get_neighbors(coord):
-            # if it's already a wall, don't worry about updating it
-            each_x, each_y = each
-            if not self._is_wall[each_x][each_y]:
-                self.update_vertex(each)
+        self._is_wall[x][y] = True
+        self.update_vertex(coord)
 
     def extract_path(self):
-        if not self._has_path:
-            self.compute_shortest_path()  # if no shortest path is yet available, generate one
+        if self._start == self._goal:
+            return [self._start]  # trivial case
 
-        # traverses the weights and returns a series of coordinates corresponding to the shortest path
-        best_path = []
+        self.compute_shortest_path()  # if no shortest path is yet available, generate one
+        if self._best_path is None:
+            # traverses the weights and returns a series of coordinates corresponding to the shortest path
+            best_path = []
 
-        curr_pos = self._start
-        while curr_pos != self._goal:
-            best_path.append(curr_pos)
-            curr_neighbors = self._get_neighbors(curr_pos)
-            for i in range(len(curr_neighbors)):
-                # get the weights as well
-                weight = self._get_tuple(curr_neighbors[i])[1]
-                if curr_neighbors[i] in best_path:
-                    weight = float("inf")  # don't re-use nodes in the path
-                curr_neighbors[i] = (curr_neighbors[i], weight)
-            curr_neighbors.sort(key=lambda tup: tup[1])
-            curr_pos = curr_neighbors[0][0]
+            curr_pos = self._goal
+            if self._get_tuple(self._goal)[0] == float("inf"):
+                return None  # no path exists to the goal node
 
-        best_path.append(curr_pos)  # add the goal to the path
-        return best_path
+            while curr_pos != self._start:
+                best_path.append(curr_pos)
+                curr_neighbors = self._get_neighbors(curr_pos)
+                for i in range(len(curr_neighbors)):
+                    curr_neighbors[i] = (curr_neighbors[i], self._get_tuple(curr_neighbors[i])[1])
+                curr_neighbors.sort(key=lambda tup: tup[1])
+                curr_pos = curr_neighbors[0][0]
+
+            best_path.append(curr_pos)  # add the goal to the path
+            self._best_path = best_path
+            self._best_path.reverse()
+        return self._best_path
