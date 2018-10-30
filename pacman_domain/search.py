@@ -18,6 +18,7 @@ Pacman agents (in searchAgents.py).
 """
 
 import util
+from game import Actions
 
 class SearchProblem:
     """
@@ -272,7 +273,7 @@ def aStarSearch(problem, heuristic=nullHeuristic):
     # Goal not found, so no action.
     return []
 
-def replanningAStarSearch(problem, heuristic=nullHeuristic):
+def replanningAStarSearch(problem, heuristic):
     """
     Applies AStarSearch in the scenario where the agent only knows the goal
     state and does not know the location of the walls.  When the agent finds out
@@ -281,13 +282,28 @@ def replanningAStarSearch(problem, heuristic=nullHeuristic):
 
     We can initally test the implementation of this algorithm with tinyMaze grid
     using this command:
-    python pacman.py -l tinyMaze -p SearchAgent -a fn=rastar
+    python pacman.py -l tinyMaze -p SearchAgent -a fn=rastar,prob=ReplanningSearchProblem,heuristic=manhattanHeuristic
 
     Then we can verify that the algorithm works with other grids, using the
     layouts from the layouts/ directory.
     """
-    # TODO: implement replanningAStarSearch
-    util.raiseNotDefined()
+    startState = problem.getStartState()
+    x, y = startState[0], startState[1]
+    pathSoFar = []
+    while not problem.isGoalState((x, y)):
+        actions = aStarSearch(problem, heuristic)
+        for action in actions:
+            dx, dy = Actions.directionToVector(action)
+            nextx, nexty = int(x + dx), int(y + dy)
+            if problem.isWall(nextx, nexty):
+                problem.setNaiveWalls(nextx, nexty)
+                problem.setStartState(x, y)
+                continue
+            else:
+                x = nextx
+                y = nexty
+                pathSoFar.append(action)
+    return pathSoFar
 
 
 # Abbreviations
