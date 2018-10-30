@@ -61,8 +61,6 @@ class DualPriorityQueue:
             self._min_value = None
         else:
             priority_list = list(self._priority.keys())
-            if len(priority_list) == 0:
-                print(priority_list)
             self._min_value = min(priority_list)
             self._min_count = priority_list.count(self._min_value)
 
