@@ -298,7 +298,7 @@ def replanningAStarSearch(problem, heuristic):
             if problem.isWall(nextx, nexty):
                 problem.setNaiveWalls(nextx, nexty)
                 problem.setStartState(x, y)
-                continue
+                break
             else:
                 x = nextx
                 y = nexty
