@@ -33,15 +33,17 @@ def l2_dist(coord1, coord2):
     return math.sqrt(((q1 - p1) ** 2) + ((q2 - p2) ** 2))
 
 
+# noinspection PyAttributeOutsideInit
 class LPAStar:
     # ########  LPA* core functions  ########
 
     def __init__(self, resolution, start_coord, goal_coord, heuristic_func=l1_dist):
-        # corresponds to "Initialize"
+        self.initialize(resolution, start_coord, goal_coord, heuristic_func)
 
+    def initialize(self, resolution, start_coord, goal_coord, heuristic_func):
         # init the containers
         self._h = heuristic_func  # expects a lambda that can be called
-        self._pq = dpq.DualPriorityQueue()
+        self._U = dpq.DualPriorityQueue()
         self._start = start_coord
         self._goal = goal_coord
         self._has_path = False
@@ -52,17 +54,17 @@ class LPAStar:
         self._width = x_res
         self._height = y_res
         self._node_count = x_res * y_res
-        self._vertex_weights = [[[float("inf"), float("inf")] for y in range(y_res)] for x in range(x_res)]
-        self._is_wall = [[False for y in range(y_res)] for x in range(x_res)]
+        self._vertex_weights = [[[float("inf"), float("inf")] for _ in range(y_res)] for _ in range(x_res)]
+        self._is_wall = [[False for _ in range(y_res)] for _ in range(x_res)]
 
         # init the start node
-        self._set_tuple(start_coord, (Unchanged, 0))
+        self._set_weight_tuple(start_coord, (Unchanged, 0))
         prim, sec = self.compute_keys(start_coord)
-        self._pq.push(key=start_coord, primary=prim, secondary=sec)
+        self._U.push(key=start_coord, primary=prim, secondary=sec)
 
     def compute_keys(self, coord):
         heuristic = self._h(coord, self._goal)
-        tup = self._get_tuple(coord)
+        tup = self._get_weight_tuple(coord)
         baseline = min(tup)
         return baseline + heuristic, baseline
 
@@ -74,44 +76,44 @@ class LPAStar:
                 neighbors = self._get_neighbors(coord)
                 for each in neighbors:
                     # otherwise, it's [edge cost] more than the lowest neighboring g(s)
-                    g, _ = self._get_tuple(each)
+                    g, _ = self._get_weight_tuple(each)
                     new_rhs = min(new_rhs, g + EDGE_WEIGHT)
-            self._set_tuple(coord, (Unchanged, new_rhs))
+            self._set_weight_tuple(coord, (Unchanged, new_rhs))
 
         # remove from PQ
-        self._pq.delete_key(coord)
+        self._U.delete_key(coord)
 
         # re-insert if locally underconsistent (inequality partially satisfied by upstream compute_shortest_path)
-        g, rhs = self._get_tuple(coord)
+        g, rhs = self._get_weight_tuple(coord)
         if g != rhs:
             prim, sec = self.compute_keys(coord)
-            self._pq.push(key=coord, primary=prim, secondary=sec)
+            self._U.push(key=coord, primary=prim, secondary=sec)
 
     def compute_shortest_path(self):
         if self._has_path:
             return  # don't try to re-compute an already-computed path, the PQ is empty
 
         # implicitly assumes start to goal
-        goal_tup = self._get_tuple(self._goal)
+        goal_tup = self._get_weight_tuple(self._goal)
         goal_keys = self.compute_keys(self._goal)
-        peek_keys = self._pq.peek()[1:3]  # slice the peek to get the priority tuple only
+        peek_keys = self._U.peek()[1:3]  # slice the peek to get the priority tuple only
         while (goal_tup[0] != goal_tup[1]) or (self._tuple_lt(peek_keys, goal_keys)):
-            u = self._pq.pop()[0]
-            g_u, rhs_u = self._get_tuple(u)  # pull these again; they may be different than when it was pushed
+            u = self._U.pop()[0]
+            g_u, rhs_u = self._get_weight_tuple(u)  # pull these again; they may be different than when it was pushed
             if g_u > rhs_u:
                 # locally overconsistent
-                self._set_tuple(u, (rhs_u, Unchanged))  # g(s) = rhs(s)
+                self._set_weight_tuple(u, (rhs_u, Unchanged))  # g(s) = rhs(s)
             else:
-                self._set_tuple(u, (float("inf"), Unchanged))  # g(s) = infinity
+                self._set_weight_tuple(u, (float("inf"), Unchanged))  # g(s) = infinity
                 self.update_vertex(u)  # update the vertex itself
             for s in self._get_neighbors(u):
                 self.update_vertex(s)  # update the successor vertices, in either case
 
             # prep variables for next loop invariant test
-            if self._pq.size() == 0:
+            if self._U.size() == 0:
                 break  # all done! the whole graph is consistent
-            goal_tup = self._get_tuple(self._goal)
-            peek_keys = self._pq.peek()[1:3]
+            goal_tup = self._get_weight_tuple(self._goal)
+            peek_keys = self._U.peek()[1:3]
 
         self._has_path = True
 
@@ -148,14 +150,14 @@ class LPAStar:
                 valid_dirs.append(each)
         return valid_dirs
 
-    def _set_tuple(self, coord, tup):
+    def _set_weight_tuple(self, coord, tup):
         x, y = coord
         if tup[0] is not Unchanged:
             self._vertex_weights[x][y][0] = tup[0]
         if tup[1] is not Unchanged:
             self._vertex_weights[x][y][1] = tup[1]
 
-    def _get_tuple(self, coord):
+    def _get_weight_tuple(self, coord):
         x, y = coord
         return self._vertex_weights[x][y]
 
@@ -182,14 +184,14 @@ class LPAStar:
             best_path = []
 
             curr_pos = self._goal
-            if self._get_tuple(self._goal)[0] == float("inf"):
+            if self._get_weight_tuple(self._goal)[0] == float("inf"):
                 return None  # no path exists to the goal node
 
             while curr_pos != self._start:
                 best_path.append(curr_pos)
                 curr_neighbors = self._get_neighbors(curr_pos)
                 for i in range(len(curr_neighbors)):
-                    curr_neighbors[i] = (curr_neighbors[i], self._get_tuple(curr_neighbors[i])[1])
+                    curr_neighbors[i] = (curr_neighbors[i], self._get_weight_tuple(curr_neighbors[i])[1])
                 curr_neighbors.sort(key=lambda tup: tup[1])
                 curr_pos = curr_neighbors[0][0]
 
