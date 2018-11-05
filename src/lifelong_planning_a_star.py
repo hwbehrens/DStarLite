@@ -10,12 +10,14 @@
 
 
 # imports
-from src import dual_priority_queue as dpq
 import math
+
+from src import dual_priority_queue as dpq
 
 # global variables
 EDGE_WEIGHT = 1
 Unchanged = None  # alias to improve semantic readability
+
 
 # assumptions:
 # all edge weights are either 1 (adjacent) or infinity (non-adjacent or walls)

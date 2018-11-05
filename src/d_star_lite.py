@@ -9,12 +9,13 @@
 # https://doi.org/10.1109/ROBOT.2002.1013481
 
 # imports
-from src import lifelong_planning_a_star as lpa
 from src import dual_priority_queue as dpq
+from src import lifelong_planning_a_star as lpa
 
 # global variables
 EDGE_WEIGHT = 1
 Unchanged = None  # alias to improve semantic readability
+
 
 # assumptions:
 # all edge weights are either 1 (adjacent) or infinity (non-adjacent or walls)
@@ -23,7 +24,7 @@ Unchanged = None  # alias to improve semantic readability
 
 # noinspection PyAttributeOutsideInit
 class DStarLite(lpa.LPAStar):
-    # ########  LPA* core functions  ########
+    # ########  D* Lite core functions  ########
     def initialize(self, resolution, start_coord, goal_coord, heuristic_func=lpa.l1_dist):
         # init the containers
         self._h = heuristic_func  # expects a lambda that can be called
