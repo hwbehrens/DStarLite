@@ -35,11 +35,10 @@ def l2_dist(coord1, coord2):
 
 # noinspection PyAttributeOutsideInit
 class LPAStar:
-    # ########  LPA* core functions  ########
-
     def __init__(self, resolution, start_coord, goal_coord, heuristic_func=l1_dist):
         self.initialize(resolution, start_coord, goal_coord, heuristic_func)
 
+    # ########  LPA* core functions  ########
     def initialize(self, resolution, start_coord, goal_coord, heuristic_func):
         # init the containers
         self._h = heuristic_func  # expects a lambda that can be called
@@ -119,14 +118,19 @@ class LPAStar:
 
     # ########  internal helper functions ########
     def _tuple_lt(self, tup1, tup2):
-        if len(tup1) == 2 and len(tup2) == 2:
+        if len(tup1) == 2:
             t1_primary, t1_secondary = tup1
-            t2_primary, t2_secondary = tup2
-        elif len(tup1) == 3 and len(tup2) == 3:
+        elif len(tup1) == 3:
             t1_label, t1_primary, t1_secondary = tup1
+        else:
+            raise ValueError("Left-side tuple contains unexpected arity: {0}".format(tup1))
+
+        if len(tup2) == 2:
+            t2_primary, t2_secondary = tup2
+        elif len(tup2) == 3:
             t2_label, t2_primary, t2_secondary = tup2
         else:
-            raise ValueError("Cannot compare tuples with different (or non-standard) input arity")
+            raise ValueError("Right-side tuple contains unexpected arity: {0}".format(tup2))
 
         if t1_primary < t2_primary:
             return True  # first primary wins
