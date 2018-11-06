@@ -19,6 +19,8 @@ Pacman agents (in searchAgents.py).
 
 import util
 from game import Actions
+import lifelong_planning_a_star as lpa
+from game import Directions
 
 class SearchProblem:
     """
@@ -305,6 +307,30 @@ def replanningAStarSearch(problem, heuristic):
                 pathSoFar.append(action)
     return pathSoFar
 
+def LPAStarSearch(problem):
+    def getDirection(coord, nextCoord):
+        curr_x = coord[0]
+        next_x = nextCoord[0]
+        curr_y = coord[1]
+        next_y = nextCoord[1]
+        if curr_x - next_x < 0:
+            return Directions.EAST
+        elif curr_x - next_x > 0:
+            return Directions.WEST
+        elif curr_y - next_y < 0:
+            return Directions.NORTH
+        else:
+            return Directions.SOUTH
+
+    lpastar_obj = lpa.LPAStar(problem)
+    path = lpastar_obj.extract_path()
+    directions = []
+    for index in range(len(path) - 1):
+        coord = path[index]
+        nextCoord = path[index + 1]
+        direction = getDirection(coord, nextCoord)
+        directions.append(direction)
+    return directions
 
 # Abbreviations
 bfs = breadthFirstSearch
@@ -312,3 +338,4 @@ dfs = depthFirstSearch
 astar = aStarSearch
 ucs = uniformCostSearch
 rastar = replanningAStarSearch
+lpastar = LPAStarSearch

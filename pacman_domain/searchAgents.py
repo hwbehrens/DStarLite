@@ -164,6 +164,17 @@ class PositionSearchProblem(search.SearchProblem):
         # For display purposes
         self._visited, self._visitedlist, self._expanded = {}, [], 0 # DO NOT CHANGE
 
+    def isWall(self, x, y):
+        return self.walls[x][y]
+
+    def getWalls(self):
+        return self.walls
+
+    def getDims(self):
+        height = self.walls.height
+        width = self.walls.width
+        return (width, height)
+
     def getStartState(self):
         return self.startState
 
@@ -179,6 +190,9 @@ class PositionSearchProblem(search.SearchProblem):
                     __main__._display.drawExpandedCells(self._visitedlist) #@UndefinedVariable
 
         return isGoal
+
+    def getGoalState(self):
+        return self.goal
 
     def getSuccessors(self, state):
         """
