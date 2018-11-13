@@ -32,23 +32,27 @@
 \maketitle
 
 \begin{abstract}
-abstract
+Route-finding has historically played an important role within computer science, but often assumes that the region or graph to be traversed is fully known. In practice, this requirement can prove difficult to satisfy; no domain better illustrates this challenge than robotics. As autonomous agents traverse unknown environments, their route-finding must adapt to incorporate new information as it becomes available. In this work, we explore several route-finding algorithms from the literature, including lifelong-planning A*, D* Lite, and naive-replanning A*. We discuss the implementations of these approaches, and discuss their strengths, weaknesses, and appropriateness for various scenarios. We conclude by comparing their relative efficacy for autonomous agent pathfinding in partially-observable terrain, as represented by the Pacman pathfinding problem.
 \end{abstract}
 
 \begin{IEEEkeywords}
-component, formatting, style, styling, insert
+path planning, shortest path problem, robot learning, observability
 \end{IEEEkeywords}
 
-\section{Introduction}
-This document is a model and instructions for \LaTeX.
-Please observe the conference page limits. 
+\input{1intro}
+
+\input{2background}
+
+\input{3implementation}
+
+\input{4evaluation}
+
+\input{5conclusion}
+
 
 \section*{Acknowledgment}
-
-
-\section*{References}
-
-\cite{koenig2002improved}
+% better safe than sorry!
+We would like to thank Mehrdad Zaker Shahrak and Yu Zhang for sharing their valuable insights in the course of this work.
 
 \bibliographystyle{ieeetr}
 \bibliography{refs.bib}
