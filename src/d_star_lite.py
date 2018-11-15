@@ -44,10 +44,13 @@ class DStarLite(lpa.LPAStar):
         self._vertex_costs = [[[float("inf"), float("inf")] for _ in range(y_res)] for _ in range(x_res)]
         self._is_wall = [[False for _ in range(y_res)] for _ in range(x_res)]
 
-        # init the start node
-        self._set_weight_tuple(start_coord, (Unchanged, 0))
-        prim, sec = self.compute_keys(start_coord)
-        self._U.push(key=start_coord, primary=prim, secondary=sec)
+        # init the goal node (works backward)
+        self._set_weight_tuple(goal_coord, (Unchanged, 0))
+        prim, sec = self.compute_keys(goal_coord)
+        self._U.push(key=goal_coord, primary=prim, secondary=sec)
+
+        # find the path at least once, so we can take a step if needed
+        self.compute_shortest_path()
 
     def compute_keys(self, coord):
         h_cost = self._h(self._start, coord)  # heuristic cost from start node to this node
@@ -61,7 +64,8 @@ class DStarLite(lpa.LPAStar):
 
     def compute_shortest_path(self):
         g_start, rhs_start = self._get_weight_tuple(self._start)
-        while self._tuple_lt(self._U.peek(), self.compute_keys(self._start)) or g_start != rhs_start:
+        while (self._U.size() > 0 and self._tuple_lt(self._U.peek(), self.compute_keys(self._start))) or \
+                g_start != rhs_start:
             k_old = self._U.peek()
             u = self._U.pop()[0]
             g_u, rhs_u = self._get_weight_tuple(u)
@@ -71,12 +75,14 @@ class DStarLite(lpa.LPAStar):
             elif g_u > rhs_u:
                 self._set_weight_tuple(u, (rhs_u, Unchanged))  # g(u) = rhs(u)
                 for each in self._get_neighbors(u):
-                    self.update_vertex(each)
+                    self.update_vertex(each, self._goal)
             else:
                 self._set_weight_tuple(u, (float("inf"), Unchanged))  # g(u) = inf
                 for each in self._get_neighbors(u):
-                    self.update_vertex(each)
-                self.update_vertex(u)
+                    self.update_vertex(each, self._goal)
+                self.update_vertex(u, self._goal)
+
+            g_start, rhs_start = self._get_weight_tuple(self._start)  # update for next iteration
 
     # ########  external (pacman) helper functions  ########
     def make_wall_at(self, coord):
@@ -92,11 +98,11 @@ class DStarLite(lpa.LPAStar):
 
     def take_step(self):
         if self._start == self._goal:
-            return  # we're already at the goal; no need to move
+            return self._start  # we're already at the goal; no need to move
 
         g_start, rhs_start = self._get_weight_tuple(self._start)
         if g_start == float("inf"):
-            return  # no path exists; no need to move
+            return self._start  # no path exists; no need to move
 
         # move according to our best guess
         argmin = (None, float("inf"))
@@ -112,9 +118,11 @@ class DStarLite(lpa.LPAStar):
             self._km += self._h(self._last, self._start)
             self._last = self._start
             for each in self._changed_edges:
-                self.update_vertex(each)
+                self.update_vertex(each, self._goal)
             self._changed_edges = set()  # we've updated all the edges
             self.compute_shortest_path()  # find the new shortest path
 
+        return self._start
+
     def extract_path(self):
-        return self._path  # ??? maybe ???
+        return self._path

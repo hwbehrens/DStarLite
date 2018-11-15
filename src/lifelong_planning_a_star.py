@@ -55,7 +55,7 @@ class LPAStar:
         self._width = x_res
         self._height = y_res
         self._node_count = x_res * y_res
-        self._vertex_weights = [[[float("inf"), float("inf")] for _ in range(y_res)] for _ in range(x_res)]
+        self._vertex_costs = [[[float("inf"), float("inf")] for _ in range(y_res)] for _ in range(x_res)]
         self._is_wall = [[False for _ in range(y_res)] for _ in range(x_res)]
 
         # init the start node
@@ -69,9 +69,12 @@ class LPAStar:
         baseline = min(tup)
         return baseline + heuristic, baseline
 
-    def update_vertex(self, coord):
+    def update_vertex(self, coord, exclusion_node=None):
+        if exclusion_node is None:
+            exclusion_node = self._start
+
         # update rhs (if not start node)
-        if coord != self._start:
+        if coord != exclusion_node:
             new_rhs = float("inf")  # if this node is a wall, the new rhs(s) is infinity
             if not self._is_wall[coord[0]][coord[1]]:
                 neighbors = self._get_neighbors(coord)
@@ -159,13 +162,13 @@ class LPAStar:
     def _set_weight_tuple(self, coord, tup):
         x, y = coord
         if tup[0] is not Unchanged:
-            self._vertex_weights[x][y][0] = tup[0]
+            self._vertex_costs[x][y][0] = tup[0]
         if tup[1] is not Unchanged:
-            self._vertex_weights[x][y][1] = tup[1]
+            self._vertex_costs[x][y][1] = tup[1]
 
     def _get_weight_tuple(self, coord):
         x, y = coord
-        return self._vertex_weights[x][y]
+        return self._vertex_costs[x][y]
 
     # ########  external (pacman) helper functions  ########
 
