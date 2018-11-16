@@ -6,8 +6,8 @@
 
 # Provides basic testing functionality for the DualPriorityQueue class
 
-import sys
 import math
+import sys
 
 sys.path.append("/Users/hwbehren/JetBrains/PycharmProjects/DStarLite")
 
@@ -78,17 +78,62 @@ assert map_c.extract_path() == [(0, 0)]
 #   #####
 map_d = lpa.LPAStar(start_coord=(0, 0), goal_coord=(2, 0), resolution=(3, 1))
 map_d.make_wall_at((1, 0))
-assert map_d.extract_path() is None
+assert map_d.extract_path() is None  # no path to find
+assert map_d.get_backtrack_path() == []  # definitely nothing to backtrack to either
 
 # test 7: tuple inequality testing
 tup1, tup2 = ("a", 2, 1), ("b", 2, 2)
 assert map_d._tuple_lt(tup1, tup2)
-exception_found = False
+tup1, tup2 = (2, 2), (2, 1)
+assert not (map_d._tuple_lt(tup1, tup2))
+tup1 = (1)
 try:
-    res = map_d._tuple_lt(tup1, (6,2))
+    res = map_d._tuple_lt(tup1, tup2)
 except ValueError as e:
-    exception_found = str(e) == "Cannot compare tuples with different (or non-standard) input arity"
-assert exception_found
+    assert "Left-side" in str(e)
+try:
+    res = map_d._tuple_lt(tup2, tup1)
+except ValueError as e:
+    assert "Right-side" in str(e)
+tup1 = (1, 2, 3, 4, 5)
+try:
+    res = map_d._tuple_lt(tup1, tup2)
+except ValueError as e:
+    assert "Left-side" in str(e)
+try:
+    res = map_d._tuple_lt(tup2, tup1)
+except ValueError as e:
+    assert "Right-side" in str(e)
+
+# test 8: surprise-wall test
+#   ############  5 rows
+#   #          # 10 cols
+#   # ######## #
+#   #S       #G#
+#   # ######## #
+#   #          #
+#   ############
+map_e = lpa.LPAStar(start_coord=(2, 0), goal_coord=(2, 9), resolution=(5, 10))
+
+# make the corridor walls (we know about these at the start)
+for y in range(1, 9):
+    map_e.make_wall_at((1, y))
+    map_e.make_wall_at((3, y))
+
+# the naive, straight-across path
+assert map_e.extract_path() == \
+       [(2, 0), (2, 1), (2, 2), (2, 3), (2, 4), (2, 5), (2, 6), (2, 7), (2, 8), (2, 9)]
+
+# make the plug wall (zounds, so close! we're at (2,7), now what?)
+map_e.make_wall_at((2, 8))
+
+# go along the bottom row
+assert map_e.extract_path() == \
+       [(2, 0), (3, 0), (4, 0), (4, 1), (4, 2), (4, 3), (4, 4), (4, 5),
+        (4, 6), (4, 7), (4, 8), (4, 9), (3, 9), (2, 9)]
+
+# how to backtrack to use the new path?
+backpath = map_e.get_backtrack_path()
 
 # all done
 print("Testing complete!")

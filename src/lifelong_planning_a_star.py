@@ -10,6 +10,7 @@
 
 
 # imports
+import collections
 import math
 
 from src import dual_priority_queue as dpq
@@ -49,6 +50,7 @@ class LPAStar:
         self._goal = goal_coord
         self._has_path = False
         self._best_path = None
+        self._last_path = None
 
         # set up the map/grid
         x_res, y_res = resolution
@@ -117,12 +119,19 @@ class LPAStar:
             if self._U.size() == 0:
                 break  # all done! the whole graph is consistent
             goal_tup = self._get_weight_tuple(self._goal)
+            goal_keys = self.compute_keys(self._goal)
             peek_keys = self._U.peek()[1:3]
 
         self._has_path = True
 
     # ########  internal helper functions ########
     def _tuple_lt(self, tup1, tup2):
+        if not isinstance(tup1, collections.Iterable):
+            raise ValueError("Left-side tuple is not iterable: {0}".format(tup1))
+
+        if not isinstance(tup2, collections.Iterable):
+            raise ValueError("Right-side tuple is not iterable: {0}".format(tup2))
+
         if len(tup1) == 2:
             t1_primary, t1_secondary = tup1
         elif len(tup1) == 3:
@@ -177,6 +186,7 @@ class LPAStar:
 
         # path might have changed!
         self._has_path = False
+        self._last_path = self._best_path
         self._best_path = None
 
         # "update the edge weights", or more accurately, update the adjacent, affected vertices
@@ -208,3 +218,26 @@ class LPAStar:
             self._best_path = best_path
             self._best_path.reverse()
         return self._best_path
+
+    def get_path_intersection_point(self):
+        if self._last_path is None or self._best_path is None:
+            return
+
+        pos = None
+        for index in range(min(len(self._best_path), len(self._last_path))):
+            if self._best_path[index] == self._last_path[index]:
+                pos = self._best_path[index]
+            else:
+                return pos
+
+    def get_backtrack_path(self):
+        backpath = []
+        intersect = self.get_path_intersection_point()
+        if intersect is None:
+            return []  # no path to backtrack to
+        rev_path = reversed(self._last_path)
+        for point in rev_path:
+            if point != intersect:
+                backpath.append(point)
+        backpath.append(intersect)
+        return backpath
