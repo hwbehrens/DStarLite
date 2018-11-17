@@ -51,6 +51,7 @@ class LPAStar:
         self._has_path = False
         self._best_path = None
         self._last_path = None
+        self._pop_count = 0
 
         # set up the map/grid
         x_res, y_res = resolution
@@ -105,6 +106,7 @@ class LPAStar:
         peek_keys = self._U.peek()[1:3]  # slice the peek to get the priority tuple only
         while (goal_tup[0] != goal_tup[1]) or (self._tuple_lt(peek_keys, goal_keys)):
             u = self._U.pop()[0]
+            self._pop_count += 1
             g_u, rhs_u = self._get_weight_tuple(u)  # pull these again; they may be different than when it was pushed
             if g_u > rhs_u:
                 # locally overconsistent
