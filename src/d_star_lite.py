@@ -35,6 +35,11 @@ class DStarLite(lpa.LPAStar):
         self._goal = goal_coord
         self._path = []
         self._changed_edges = set()
+        self._pop_count = 0
+
+        self._has_path = False
+        self._best_path = None
+        self._last_path = None
 
         # set up the map/grid
         x_res, y_res = resolution
@@ -68,6 +73,7 @@ class DStarLite(lpa.LPAStar):
                 g_start != rhs_start:
             k_old = self._U.peek()
             u = self._U.pop()[0]
+            self._pop_count += 1
             g_u, rhs_u = self._get_weight_tuple(u)
             if self._tuple_lt(k_old, self.compute_keys(u)):
                 prim, sec = self.compute_keys(u)
@@ -83,6 +89,7 @@ class DStarLite(lpa.LPAStar):
                 self.update_vertex(u, self._goal)
 
             g_start, rhs_start = self._get_weight_tuple(self._start)  # update for next iteration
+        self._has_path = True
 
     # ########  external (pacman) helper functions  ########
     def make_wall_at(self, coord):
@@ -95,6 +102,15 @@ class DStarLite(lpa.LPAStar):
         self._is_wall[x][y] = True
         for each in self._get_neighbors(coord):
             self._changed_edges.add(each)  # add all wall-adjacent edges to the queue to be update_vertex'd
+
+        # process edge updates
+        if len(self._changed_edges) > 0:
+            self._km += self._h(self._last, self._start)
+            self._last = self._start
+            for each in self._changed_edges:
+                self.update_vertex(each, self._goal)
+            self._changed_edges = set()  # we've updated all the edges
+            self.compute_shortest_path()  # find the new shortest path
 
     def take_step(self):
         if self._start == self._goal:
@@ -113,16 +129,9 @@ class DStarLite(lpa.LPAStar):
         self._path.append(self._start)
         self._start = argmin[0]
 
-        # check for edge updates
-        if len(self._changed_edges) > 0:
-            self._km += self._h(self._last, self._start)
-            self._last = self._start
-            for each in self._changed_edges:
-                self.update_vertex(each, self._goal)
-            self._changed_edges = set()  # we've updated all the edges
-            self.compute_shortest_path()  # find the new shortest path
-
         return self._start
 
-    def extract_path(self):
-        return self._path
+    def get_route(self):
+        res = list(self._path)
+        res.append(self._start)
+        return res
