@@ -195,7 +195,7 @@ class LPAStar:
         self._is_wall[x][y] = True
         self.update_vertex(coord)
 
-    def extract_path(self):
+    def extract_path(self, backward=True):
         if self._start == self._goal:
             return [self._start]  # trivial case
 
@@ -204,11 +204,16 @@ class LPAStar:
             # traverses the weights and returns a series of coordinates corresponding to the shortest path
             best_path = []
 
-            curr_pos = self._goal
-            if self._get_weight_tuple(self._goal)[0] == float("inf"):
-                return None  # no path exists to the goal node
+            if not backward:
+                curr_pos = self._start  # go from start to goal (D*lite)
+                target_pos = self._goal
+            else:
+                curr_pos = self._goal  # go from goal to start (LPA*)
+                target_pos = self._start
+            if self._get_weight_tuple(curr_pos)[0] == float("inf"):
+                return None  # no path between start and goal
 
-            while curr_pos != self._start:
+            while curr_pos != target_pos:
                 best_path.append(curr_pos)
                 curr_neighbors = self._get_neighbors(curr_pos)
                 for i in range(len(curr_neighbors)):
@@ -218,7 +223,8 @@ class LPAStar:
 
             best_path.append(curr_pos)  # add the goal to the path
             self._best_path = best_path
-            self._best_path.reverse()
+            if backward:
+                self._best_path.reverse()
         return self._best_path
 
     def get_path_intersection_point(self):
