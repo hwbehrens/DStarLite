@@ -17,6 +17,7 @@ class DualPriorityQueue:
         self._priority = dict()  # maps primary priorities to keys
         self._min_value = None
         self._min_count = 0
+        self._peek = None
 
     def size(self):
         return self._size
@@ -38,6 +39,7 @@ class DualPriorityQueue:
             self._min_count = 1
         elif primary == self._min_value:
             self._min_count += 1
+        self._peek = None  # might be a new best value; clear cache to be sure
 
     def delete_key(self, key):
         if key in self._ledger:
@@ -51,6 +53,7 @@ class DualPriorityQueue:
 
             # can be expensive [O(n)] to recompute the min, so be smart about it
             if old_primary == self._min_value:
+                self._peek = None  # clear the peek cache
                 self._min_count -= 1
                 if self._min_count == 0:
                     self._compute_min()  # only compute if we've exhausted the current min-priority tier
@@ -67,6 +70,8 @@ class DualPriorityQueue:
     def peek(self):
         if self.size() <= 0:
             return None  # nothing to pop
+        if self._peek is not None:
+            return self._peek
 
         # find and break the ties
         candidate_keys = self._priority[self._min_value]
@@ -77,6 +82,7 @@ class DualPriorityQueue:
         result.sort(key=lambda x: x[2])  # sort the list by the secondary priority
         result = result[0]
 
+        self._peek = result
         return result
 
     def pop(self):

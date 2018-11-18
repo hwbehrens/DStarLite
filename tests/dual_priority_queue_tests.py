@@ -54,6 +54,7 @@ assert pq.min_state() == (6, 2)
 assert pq.size() == 3
 
 # testing PQ exhaustion
+assert pq.peek() == ("key3", 6, 2)
 assert pq.pop() == ("key3", 6, 2)
 assert pq.min_state() == (6, 1)
 assert pq.size() == 2
