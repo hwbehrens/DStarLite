@@ -34,7 +34,7 @@ class DStarLite(lpa.LPAStar):
         self._last = start_coord
         self._goal = goal_coord
         self._path = []
-        self._changed_edges = set()
+        self._changed_edges = list()
         self._pop_count = 0
 
         self._has_path = False
@@ -98,19 +98,19 @@ class DStarLite(lpa.LPAStar):
         start_neighbors = self._get_neighbors(self._start)
         if coord not in start_neighbors:
             raise ValueError("A wall cannot be discovered at a non-adjacent location; this breaks D* Lite.")
+        self._changed_edges.append(coord)
 
         self._is_wall[x][y] = True
         for each in self._get_neighbors(coord):
-            self._changed_edges.add(each)  # add all wall-adjacent edges to the queue to be update_vertex'd
+            self._changed_edges.append(each)  # add all wall-adjacent edges to the queue to be update_vertex'd
 
         # process edge updates
-        if len(self._changed_edges) > 0:
-            self._km += self._h(self._last, self._start)
-            self._last = self._start
-            for each in self._changed_edges:
-                self.update_vertex(each, self._goal)
-            self._changed_edges = set()  # we've updated all the edges
-            self.compute_shortest_path()  # find the new shortest path
+        self._km += self._h(self._last, self._start)
+        self._last = self._start
+        for each in self._changed_edges:
+            self.update_vertex(each, self._goal)
+        self._changed_edges = list()  # we've updated all the edges
+        self.compute_shortest_path()  # find the new shortest path
 
     def take_step(self):
         if self._start == self._goal:
@@ -130,6 +130,9 @@ class DStarLite(lpa.LPAStar):
         self._start = argmin[0]
 
         return self._start
+
+    def extract_path(self, placeholder=None):
+        return super(DStarLite, self).extract_path(backward=False)  # override gradient direction
 
     def get_route(self):
         res = list(self._path)
