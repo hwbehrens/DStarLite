@@ -19,7 +19,8 @@ Pacman agents (in searchAgents.py).
 
 import util
 from game import Actions
-import lifelong_planning_a_star as lpa
+import lifelong_planning_a_star_hans as lpa
+import d_star_lite_hans as dsl
 from game import Directions
 
 class SearchProblem:
@@ -322,14 +323,71 @@ def LPAStarSearch(problem):
         else:
             return Directions.SOUTH
 
+    startState = problem.getStartState()
+    x, y = startState[0], startState[1]
     lpastar_obj = lpa.LPAStar(problem)
-    path = lpastar_obj.extract_path()
+    path = []
+    while not problem.isGoalState((x, y)):
+        path.append((x, y))
+        for action in [Directions.NORTH, Directions.SOUTH, Directions.EAST, Directions.WEST]:
+            dx, dy = Actions.directionToVector(action)
+            nextx, nexty = int(x + dx), int(y + dy)
+            if problem.isWall(nextx, nexty):
+                lpastar_obj.make_wall_at((nextx, nexty))
+        coords = lpastar_obj.getRoute((x, y))
+#        print 'coords:', coords
+#        print 'path:', path
+        # XXX: possibility that coords is an empty list
+#        if x == 25 and y == 14:
+#            import pdb; pdb.set_trace()
+        try:
+            nextCoord = coords[coords.index((x, y)) + 1]
+        except:
+            nextCoord = coords[0]
+        x, y = nextCoord
+    path.append((x, y))
     directions = []
     for index in range(len(path) - 1):
         coord = path[index]
         nextCoord = path[index + 1]
         direction = getDirection(coord, nextCoord)
         directions.append(direction)
+    print 'path:', path
+    return directions
+
+def DStarLiteSearch(problem):
+    def getDirection(coord, nextCoord):
+        curr_x = coord[0]
+        next_x = nextCoord[0]
+        curr_y = coord[1]
+        next_y = nextCoord[1]
+        if curr_x - next_x < 0:
+            return Directions.EAST
+        elif curr_x - next_x > 0:
+            return Directions.WEST
+        elif curr_y - next_y < 0:
+            return Directions.NORTH
+        else:
+            return Directions.SOUTH
+
+    startState = problem.getStartState()
+    x, y = startState[0], startState[1]
+    dstarlite_obj = dsl.DStarLite(problem)
+    while (x, y) != problem.getGoalState():
+        for action in [Directions.NORTH, Directions.SOUTH, Directions.EAST, Directions.WEST]:
+            dx, dy = Actions.directionToVector(action)
+            nextx, nexty = int(x + dx), int(y + dy)
+            if problem.isWall(nextx, nexty):
+                dstarlite_obj.make_wall_at((nextx, nexty))
+        x, y = dstarlite_obj.take_step()
+    path = dstarlite_obj.get_route()
+    directions = []
+    for index in range(len(path) - 1):
+        coord = path[index]
+        nextCoord = path[index + 1]
+        direction = getDirection(coord, nextCoord)
+        directions.append(direction)
+    problem._expanded = dstarlite_obj._pop_count
     return directions
 
 # Abbreviations
@@ -339,3 +397,4 @@ astar = aStarSearch
 ucs = uniformCostSearch
 rastar = replanningAStarSearch
 lpastar = LPAStarSearch
+dstarlite = DStarLiteSearch

@@ -272,6 +272,15 @@ class ReplanningSearchProblem(search.SearchProblem):
         # For display purposes
         self._visited, self._visitedlist, self._expanded = {}, [], 0 # DO NOT CHANGE
 
+    def getNaiveWalls(self):
+        return self.naiveWalls
+
+    def getGoalState(self):
+        return self.goal
+
+    def getDims(self):
+        return (self.width, self.height)
+
     def getStartState(self):
         return self.startState
 
