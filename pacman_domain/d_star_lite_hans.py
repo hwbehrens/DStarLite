@@ -9,7 +9,7 @@
 # https://doi.org/10.1109/ROBOT.2002.1013481
 
 # imports
-import dual_priority_queue as dpq
+import dual_priority_queue_hans as dpq
 import lifelong_planning_a_star_hans as lpa
 
 # global variables

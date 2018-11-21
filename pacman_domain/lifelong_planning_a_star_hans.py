@@ -13,7 +13,7 @@
 import collections
 import math
 
-import dual_priority_queue as dpq
+import dual_priority_queue_hans as dpq
 
 # global variables
 EDGE_WEIGHT = 1
@@ -52,6 +52,7 @@ class LPAStar(object):
         self._best_path = None
         self._last_path = None
         self._pop_count = 0
+        self._curr_loc = None
 
         # set up the map/grid
         x_res, y_res = problem.getDims()
@@ -246,7 +247,7 @@ class LPAStar(object):
         intersect = self.get_path_intersection_point()
         if intersect is None:
             return []  # no path to backtrack to
-#        import pdb; pdb.set_trace()
+        #        import pdb; pdb.set_trace()
         rev_path = reversed(self._last_path)
         for point in rev_path:
             if point != intersect:
@@ -269,9 +270,8 @@ class LPAStar(object):
         if not bt_path:
             return path
         intersection_pt = bt_path[-1]
-#        import pdb; pdb.set_trace()
         slice_index = path.index(intersection_pt)
-        ret_path = bt_path + path[slice_index + 1 :]
+        ret_path = bt_path + path[slice_index + 1:]
         if index_coord:
-            ret_path = ret_path[ret_path.index(index_coord) + 1 :]
+            ret_path = ret_path[ret_path.index(index_coord) + 1:]
         return ret_path

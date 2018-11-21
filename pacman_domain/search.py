@@ -23,6 +23,7 @@ import lifelong_planning_a_star_hans as lpa
 import d_star_lite_hans as dsl
 from game import Directions
 
+
 class SearchProblem:
     """
     This class outlines the structure of a search problem, but doesn't implement
@@ -74,7 +75,8 @@ def tinyMazeSearch(problem):
     from game import Directions
     s = Directions.SOUTH
     w = Directions.WEST
-    return  [s, s, w, s, w, w, s, w]
+    return [s, s, w, s, w, w, s, w]
+
 
 def depthFirstSearch(problem):
     """
@@ -142,6 +144,7 @@ def depthFirstSearch(problem):
     return []
     """
 
+
 def breadthFirstSearch(problem):
     """Search the shallowest nodes in the search tree first."""
     "*** YOUR CODE HERE ***"
@@ -189,6 +192,7 @@ def breadthFirstSearch(problem):
     return []
     """
 
+
 def uniformCostSearch(problem):
     """Search the node of least total cost first."""
     "*** YOUR CODE HERE ***"
@@ -228,12 +232,14 @@ def uniformCostSearch(problem):
     # Goal not found, so no action.
     return []
 
+
 def nullHeuristic(state, problem=None):
     """
     A heuristic function estimates the cost from the current state to the nearest
     goal in the provided SearchProblem.  This heuristic is trivial.
     """
     return 0
+
 
 def aStarSearch(problem, heuristic=nullHeuristic):
     """Search the node that has the lowest combined cost and heuristic first."""
@@ -262,7 +268,7 @@ def aStarSearch(problem, heuristic=nullHeuristic):
         for successor, action, stepCost in problem.getSuccessors(currState):
             heuristicCostToSuccessor = heuristic(successor, problem)
             newCostToSuccessor = costOfActionsToCurrState + stepCost + \
-                    heuristicCostToSuccessor
+                                 heuristicCostToSuccessor
             newActionsToSuccessor = actionsToCurrState + [action]
             if successor not in visitedStates:
                 fringe.update(successor, newCostToSuccessor)
@@ -276,7 +282,47 @@ def aStarSearch(problem, heuristic=nullHeuristic):
     # Goal not found, so no action.
     return []
 
-def replanningAStarSearch(problem, heuristic):
+
+def getCoordinate(curr_x, curr_y, action):
+    dx, dy = Actions.directionToVector(action)
+    next_x, next_y = int(curr_x + dx), int(curr_y + dy)
+    return next_x, next_y
+
+
+def actionListToCoordList(start_x, start_y, action_list):
+    coord_list = []
+    for action in action_list:
+        coord_list.append((start_x, start_y))
+        start_x, start_y = getCoordinate(start_x, start_y, action)
+    return coord_list
+
+
+def getDirection(coord, nextCoord):
+    curr_x = coord[0]
+    next_x = nextCoord[0]
+    curr_y = coord[1]
+    next_y = nextCoord[1]
+    if curr_x - next_x < 0:
+        return Directions.EAST
+    elif curr_x - next_x > 0:
+        return Directions.WEST
+    elif curr_y - next_y < 0:
+        return Directions.NORTH
+    else:
+        return Directions.SOUTH
+
+
+def coordListToActionList(coord_list):
+    directions = []
+    for index in range(len(coord_list) - 1):
+        coord = coord_list[index]
+        nextCoord = coord_list[index + 1]
+        direction = getDirection(coord, nextCoord)
+        directions.append(direction)
+    return directions
+
+
+def naiveReplanningAStarSearch(problem, heuristic):
     """
     Applies AStarSearch in the scenario where the agent only knows the goal
     state and does not know the location of the walls.  When the agent finds out
@@ -285,91 +331,63 @@ def replanningAStarSearch(problem, heuristic):
 
     We can initally test the implementation of this algorithm with tinyMaze grid
     using this command:
-    python pacman.py -l tinyMaze -p SearchAgent -a fn=rastar,prob=ReplanningSearchProblem,heuristic=manhattanHeuristic
+    python pacman.py -l tinyMaze -p SearchAgent -a fn=nrastar,prob=ReplanningSearchProblem,heuristic=manhattanHeuristic
 
     Then we can verify that the algorithm works with other grids, using the
     layouts from the layouts/ directory.
     """
     startState = problem.getStartState()
-    x, y = startState[0], startState[1]
+    curr_x, curr_y = startState[0], startState[1]
     pathSoFar = []
-    while not problem.isGoalState((x, y)):
-        actions = aStarSearch(problem, heuristic)
-        for action in actions:
-            dx, dy = Actions.directionToVector(action)
-            nextx, nexty = int(x + dx), int(y + dy)
-            if problem.isWall(nextx, nexty):
-                problem.setNaiveWalls(nextx, nexty)
-                problem.setStartState(x, y)
-                break
-            else:
-                x = nextx
-                y = nexty
-                pathSoFar.append(action)
-    return pathSoFar
+    action_list = aStarSearch(problem, heuristic)
+    while not problem.isGoalState((curr_x, curr_y)):
+        pathSoFar.append((curr_x, curr_y))
+        next_x, next_y = getCoordinate(curr_x, curr_y, action_list.pop(0))
+
+        # see the adjacent walls
+        for adjacent_direction in [Directions.NORTH, Directions.SOUTH, Directions.EAST, Directions.WEST]:
+            adj_x, adj_y = getCoordinate(curr_x, curr_y, adjacent_direction)
+            if not problem.isNaiveWall(adj_x, adj_y) and \
+                    problem.isWall(adj_x, adj_y):
+                problem.setNaiveWalls(adj_x, adj_y)
+
+        # replan only if needed (i.e. we're about to bonk against a wall)
+        if problem.isNaiveWall(next_x, next_y):
+            action_list = aStarSearch(problem, heuristic)
+            next_x, next_y = getCoordinate(curr_x, curr_y, action_list.pop(0))
+
+        curr_x, curr_y = next_x, next_y
+        problem.setStartState(curr_x, curr_y)
+    pathSoFar.append((curr_x, curr_y))
+    actions = coordListToActionList(pathSoFar)
+    problem.setStartState(startState[0], startState[1])  # reset the start state, for accurate path cost eval
+    return actions
+
 
 def LPAStarSearch(problem):
-    def getDirection(coord, nextCoord):
-        curr_x = coord[0]
-        next_x = nextCoord[0]
-        curr_y = coord[1]
-        next_y = nextCoord[1]
-        if curr_x - next_x < 0:
-            return Directions.EAST
-        elif curr_x - next_x > 0:
-            return Directions.WEST
-        elif curr_y - next_y < 0:
-            return Directions.NORTH
-        else:
-            return Directions.SOUTH
-
     startState = problem.getStartState()
     x, y = startState[0], startState[1]
     lpastar_obj = lpa.LPAStar(problem)
     path = []
     while not problem.isGoalState((x, y)):
         path.append((x, y))
-        for action in [Directions.NORTH, Directions.SOUTH, Directions.EAST, Directions.WEST]:
-            dx, dy = Actions.directionToVector(action)
+        for adjacent_direction in [Directions.NORTH, Directions.SOUTH, Directions.EAST, Directions.WEST]:
+            dx, dy = Actions.directionToVector(adjacent_direction)
             nextx, nexty = int(x + dx), int(y + dy)
             if problem.isWall(nextx, nexty):
                 lpastar_obj.make_wall_at((nextx, nexty))
         coords = lpastar_obj.getRoute((x, y))
-#        print 'coords:', coords
-#        print 'path:', path
-        # XXX: possibility that coords is an empty list
-#        if x == 25 and y == 14:
-#            import pdb; pdb.set_trace()
         try:
             nextCoord = coords[coords.index((x, y)) + 1]
         except:
             nextCoord = coords[0]
         x, y = nextCoord
     path.append((x, y))
-    directions = []
-    for index in range(len(path) - 1):
-        coord = path[index]
-        nextCoord = path[index + 1]
-        direction = getDirection(coord, nextCoord)
-        directions.append(direction)
-    print 'path:', path
+    directions = coordListToActionList(path)
     return directions
 
-def DStarLiteSearch(problem):
-    def getDirection(coord, nextCoord):
-        curr_x = coord[0]
-        next_x = nextCoord[0]
-        curr_y = coord[1]
-        next_y = nextCoord[1]
-        if curr_x - next_x < 0:
-            return Directions.EAST
-        elif curr_x - next_x > 0:
-            return Directions.WEST
-        elif curr_y - next_y < 0:
-            return Directions.NORTH
-        else:
-            return Directions.SOUTH
 
+def DStarLiteSearch(problem):
     startState = problem.getStartState()
     x, y = startState[0], startState[1]
     dstarlite_obj = dsl.DStarLite(problem)
@@ -381,20 +399,16 @@ def DStarLiteSearch(problem):
                 dstarlite_obj.make_wall_at((nextx, nexty))
         x, y = dstarlite_obj.take_step()
     path = dstarlite_obj.get_route()
-    directions = []
-    for index in range(len(path) - 1):
-        coord = path[index]
-        nextCoord = path[index + 1]
-        direction = getDirection(coord, nextCoord)
-        directions.append(direction)
+    directions = coordListToActionList(path)
     problem._expanded = dstarlite_obj._pop_count
     return directions
+
 
 # Abbreviations
 bfs = breadthFirstSearch
 dfs = depthFirstSearch
 astar = aStarSearch
 ucs = uniformCostSearch
-rastar = replanningAStarSearch
+nrastar = naiveReplanningAStarSearch
 lpastar = LPAStarSearch
 dstarlite = DStarLiteSearch
