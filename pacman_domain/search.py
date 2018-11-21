@@ -358,6 +358,7 @@ def naiveReplanningAStarSearch(problem, heuristic):
 
         curr_x, curr_y = next_x, next_y
         problem.setStartState(curr_x, curr_y)
+
     pathSoFar.append((curr_x, curr_y))
     actions = coordListToActionList(pathSoFar)
     problem.setStartState(startState[0], startState[1])  # reset the start state, for accurate path cost eval
@@ -365,26 +366,56 @@ def naiveReplanningAStarSearch(problem, heuristic):
 
 
 def LPAStarSearch(problem):
-    startState = problem.getStartState()
-    x, y = startState[0], startState[1]
     lpastar_obj = lpa.LPAStar(problem)
-    path = []
-    while not problem.isGoalState((x, y)):
-        path.append((x, y))
+
+    startState = problem.getStartState()
+    curr_tup = tuple(startState)
+    pathSoFar = []
+    coord_list = lpastar_obj.extract_path()[1:]  # slice off the start position; we're already there
+    while not problem.isGoalState(curr_tup):
+        pathSoFar.append(curr_tup)
+        next_tup = coord_list.pop(0)
+
+        # see the adjacent walls
         for adjacent_direction in [Directions.NORTH, Directions.SOUTH, Directions.EAST, Directions.WEST]:
-            dx, dy = Actions.directionToVector(adjacent_direction)
-            nextx, nexty = int(x + dx), int(y + dy)
-            if problem.isWall(nextx, nexty):
-                lpastar_obj.make_wall_at((nextx, nexty))
-        coords = lpastar_obj.getRoute((x, y))
-        try:
-            nextCoord = coords[coords.index((x, y)) + 1]
-        except:
-            nextCoord = coords[0]
-        x, y = nextCoord
-    path.append((x, y))
-    directions = coordListToActionList(path)
-    return directions
+            adj_x, adj_y = getCoordinate(curr_tup[0], curr_tup[1], adjacent_direction)
+            if problem.isWall(adj_x, adj_y):
+                lpastar_obj.make_wall_at((adj_x, adj_y))
+
+        if lpastar_obj._has_path is False:
+            # something changed! we must adapt
+            new_coord_list = lpastar_obj.extract_path()
+            if next_tup not in new_coord_list:
+                # we've totally diverged, and need to backtrack
+                back_path = []
+                old_path = list(pathSoFar)
+                pathSoFar.pop()  # remove the current position, it's not part of the back path
+                trace_tup = pathSoFar.pop()
+
+                # this gets us from the current position back to the intersection point
+                while trace_tup not in new_coord_list:
+                    back_path.append(trace_tup)
+                    trace_tup = pathSoFar.pop()
+
+                # this gets us from the original start to the intersection point
+                while new_coord_list.pop(0) != trace_tup:
+                    continue
+
+                # reassemble the pieces
+                pathSoFar = old_path + back_path + [trace_tup]
+                coord_list = new_coord_list
+                next_tup = coord_list.pop(0)
+            else:
+                while next_tup != new_coord_list.pop(0):
+                    continue  # pop until they match, then continue with the updated path
+                coord_list = new_coord_list
+        curr_tup = next_tup
+
+    pathSoFar.append(curr_tup)
+    actions = coordListToActionList(pathSoFar)
+    problem.setStartState(startState[0], startState[1])  # reset the start state, for accurate path cost eval
+    problem._expanded = lpastar_obj._pop_count
+    return actions
 
 
 def DStarLiteSearch(problem):
