@@ -340,7 +340,7 @@ class ReplanningSearchProblem(search.SearchProblem):
             x, y = state
             dx, dy = Actions.directionToVector(action)
             nextx, nexty = int(x + dx), int(y + dy)
-            if not self.naiveWalls[nextx][nexty]:
+            if nextx >= 0 and nextx < self.width and nexty >= 0 and nexty < self.height and not self.naiveWalls[nextx][nexty]:
                 nextState = (nextx, nexty)
                 cost = self.costFn(nextState)
                 successors.append((nextState, action, cost))
