@@ -1,0 +1,17 @@
+Naive Replanning AStar:
+python pacman.py -l tinyMaze -p SearchAgent -a fn=nrastar,prob=ReplanningSearchProblem,heuristic=manhattanHeuristic --frameTime 0 -z .5
+
+LPA*:
+python pacman.py -l tinyMaze -p SearchAgent -a fn=lpastar,prob=ReplanningSearchProblem,heuristic=manhattanHeuristic --frameTime 0 -z .5
+
+DStarLite:
+python pacman.py -l tinyMaze -p SearchAgent -a fn=dstarlite,prob=ReplanningSearchProblem,heuristic=manhattanHeuristic --frameTime 0 -z .5
+
+AStar:
+python pacman.py -l tinyMaze -p SearchAgent -a fn=astar,prob=PositionSearchProblem,heuristic=manhattanHeuristic --frameTime 0 -z .5
+
+Runtime measurement command:
+time python pacman.py -l bigMaze -p SearchAgent -a fn=nrastar,prob=ReplanningSearchProblem,heuristic=manhattanHeuristic  --frameTime 0 -z .5
+
+Memory measurement command:
+valgrind python pacman.py -l bigMaze -p SearchAgent -a fn=nrastar,prob=ReplanningSearchProblem,heuristic=manhattanHeuristic --frameTime 0 -z .5
