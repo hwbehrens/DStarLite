@@ -3,49 +3,52 @@
 
 \section{Evaluation}\label{sec:eval}
 	\subsection{Metrics}
-    The four metrics used to measure the performance of the search algorithms were path length, nodes expanded, memory use, and runtime. Path length describes the length of the final path that Pacman took in order to find the goal state. This path is the same path that is visualized in the Pacman environment. Nodes expanded measures the number of nodes that needed to be expanded, i.e. popped from the priority queue in order to complete the search. The nodes expanded metric is linked to both time and space complexity. This is because the more nodes expanded, the longer the search will take. Also, the more nodes expanded, the more space is needed to store those nodes in the queue. Memory use describes the maximum amount of memory in MB used by the Pacman Python process. The memory usage was captures using the $\text{tool name}$ functionality. Runtime captures the effective amount of time was needed to run the search algorithm and find an optimal path. The runtime was captures by using the linux $\text{time}$ command. 
+    The four metrics used to measure the performance of the search algorithms were path length, nodes expanded, memory use, and runtime. Path length describes the length of the final path that Pacman took in order to find the goal state. This path is the same path that is visualized in the Pacman environment. Nodes expanded measures the number of nodes that needed to be expanded, i.e. popped from the priority queue in order to complete the search. The nodes expanded metric is linked to both time and space complexity. This is because the more nodes expanded, the longer the search will take. Also, the more nodes expanded, the more space is needed to store those nodes in the queue. Memory use describes the maximum amount of memory used at a given point in time (in MB) by the Pacman Python process. The memory usage was  captured using the $\texttt{valgrind}$ utility. Runtime captures the effective amount of time was needed to run the search algorithm and return a path. The runtime was captures by using the linux $\texttt{time}$ command. 
     
     All of these metrics were measured as a function of maze size, i.e. the effective area of a the Pacman maze in test. Note that there is not a direct linear relationship between maze size and search complexity, since the maze size does not capture other factors, such as maze walls. However, the maze size is correlated with search complexity and in general, the larger the maze size, the more complex the search problem.
     
-    A* search was also included to be compared as a baseline. Note that the A* algorithms has the totally observable environment, whereas the other three algorithms only have a partially observable environment, namely the 8 adjacent cells in the Pacman environment.
+    A* search was also included to be compared as a baseline. Note that the A* algorithm has the totally observable environment, whereas the other three algorithms only have a partially observable environment, namely the 8 adjacent cells in the Pacman environment.
     
-    The experiments were run using a computer with $i7$ processor and 16GB RAM. 
+    The experiments were run using a machine with 8-core Intel i5 1.6 GHz processor and 12 GB of RAM. 
     
-    \subsubsection{Experiments}
+    \subsection{Experiments}
+    
+    We executed and collected metrics for each search algorithm against four different environments: the pre-defined tiny (7x7), small (22x10), medium (36x18), and big (37x37) mazes of the Pacman domain. Results were tabulated, graphed, and the decision was made to switch the units to logarithmic for better visibility. 
     
     \begin{figure}[htb!]
     	\centering
     	\includegraphics[width=7cm]{PathLength.png}
-    	\caption{}
+    	\caption{Path Length v. Maze Size}
     	\label{fig:1}
     \end{figure}
 
-	For all algorithms the path lengths increase with respect to the maze size. The A* algorithm has the best performance, followed by NRA* and D* Lite, and finally be LPA*. The explanation for the low performance of LPA* is that it continually backtracks which contributes to the path cost. 
+	For all algorithms the path lengths increase with respect to the maze size (see Figure 1). The A* algorithm has the best performance, followed by NRA* and D* Lite, and finally be LPA*. The explanation for the low performance of LPA* is that it continually backtracks which contributes to the path cost. 
 
 	\begin{figure}[htb!]
 		\centering
 		\includegraphics[width=7cm]{NodesExpanded.png}
-		\caption{}
+		\caption{Nodes Expanded v. Maze Size}
 		\label{fig:2}
 	\end{figure}
 
-	For all algorithms, the number of nodes expanded increases with respect to the maze size. The order of performance from best to worst is as expected: A*, D* Lite, LPA*, and NRA*. The low performance for NRA* can be explained by the re-planning nature of its implementation. Every time it hits a wall on its expected path, it re-plans from scratch, re-expanding nodes that it has already expanded in the past. This is what LPA* and D* Lite aim to avoid by persisting this information about learned walls. 
+	For all algorithms, the number of nodes expanded increases with respect to the maze size (see Figure 2). The order of performance from best to worst is as expected: A*, D* Lite, LPA*, and NRA*. The low performance for NRA* can be explained by the re-planning nature of its implementation. Every time it hits a wall on its expected path, it re-plans from scratch, i.e. the nodes explored and nodes in its fringe are not carried over when calling A* again. This is what LPA* and D* Lite aim to avoid. 
 
 	\begin{figure}[htb!]
 		\centering
 		\includegraphics[width=7cm]{Memory.png}
-		\caption{}
+		\caption{Memory v. Maze Size}
 		\label{fig:3}
 	\end{figure}
 
-	For all algorithms, the amount of memory increases with respect to the maze size. The order of performance from best to worst is: D* Lite, NRA*, A*, and finally LPA*. D* Lite slightly out-performs all other algorithms because of specific measures it takes to only re-evaluate those nodes that will have an affect on the final path. Again, the low performance of LPA* is due to the backtracking nature.  
+	For all algorithms, the amount of memory increases with respect to the maze size (see Figure 3). The order of performance from best to worst is: D* Lite, NRA*, A*, and finally LPA*. D* Lite slightly out-performs all other algorithms because of specific measures it takes to only re-evaluate those nodes that will have an affect on the final path. Again, the low performance of LPA* is due to the backtracking nature.  
 
 	\begin{figure}[htb!]
 		\centering
 		\includegraphics[width=7cm]{Time.png}
-		\caption{}
+		\caption{Runtime v. Maze Size}
 		\label{fig:4}
 	\end{figure}
 
-	For all algorithms, the runtime  increases with respect to the maze size. A* and D* Lite are the best performers, with alternating dominance. Interestingly, this shows that even if the agent has partially observable environment information, it can potentially perform fast using the right strategy, D* Lite in this case. They are followed by NRA* and finally LPA*. These two struggle due to their backtracking and re-planning nature, respectively.
+	For all algorithms, the runtime  increases with respect to the maze size (see Figure 4). A* and D* Lite are the best performers, with alternating dominance. Interestingly, this shows that even if the agent has partially observable environment information, it can potentially perform just as fast as an agent with total observability of the environment, using the right strategy, namely D* Lite in this case. They are followed by NRA* and finally LPA*. These two struggle due to their backtracking and re-planning nature, respectively.
 	
+	Comprehensively, D* Lite is the most competitive of the re-planning algorithms. The NRA* algorithm is second top performer of the re-planning algorithms, aside from the memory metric.
