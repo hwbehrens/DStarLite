@@ -3,6 +3,15 @@ An experimental Python implementation based on the D* Lite Paper.
 
 Project setup is identical to that by the original Pacman implementation used in class. All commands should therefore be run from the pacman_domain directory. Note that valgrind may need to be installed to replicate memory usage statistics.
 
+Modified files are as follows:
+
+* search.py
+* searchAgents.py
+* d\_star\_lite\_hans.py
+* dual\_priority\_queue\_hans.py
+* lifelong\_planning\_a\_star_hans.py
+
+
 *The first 4 commands are example of how to run each of the 4 search strategies in the Pacman domain:*
 
 #### Naive Replanning AStar:
